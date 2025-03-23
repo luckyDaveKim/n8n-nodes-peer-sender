@@ -1,7 +1,8 @@
-import {ISenderStrategy, Plugin} from '../types';
 import {IExecuteFunctions, INodeExecutionData, NodeOperationError} from 'n8n-workflow';
 import {AxiosRequestConfig} from 'axios';
-import {PluginTextSender} from "./PluginTextSender";
+
+import {ISenderStrategy, Plugin} from '../types';
+import {PluginTextSender} from './PluginTextSender';
 
 export class PluginSender implements ISenderStrategy {
 	async buildRequest(

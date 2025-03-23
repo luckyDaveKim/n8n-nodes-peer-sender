@@ -1,6 +1,7 @@
-import {ISenderStrategy, Plugin} from '../types';
 import {IExecuteFunctions, INodeExecutionData} from 'n8n-workflow';
 import {AxiosRequestConfig} from 'axios';
+
+import {ISenderStrategy, Plugin} from '../types';
 
 const PLUGIN: Plugin = 'text';
 

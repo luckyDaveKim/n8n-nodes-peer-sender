@@ -1,6 +1,7 @@
-import {ISenderStrategy} from '../types';
 import {IExecuteFunctions, INodeExecutionData} from 'n8n-workflow';
 import {AxiosRequestConfig} from 'axios';
+
+import {ISenderStrategy} from '../types';
 
 export class TemplateSender implements ISenderStrategy {
 	async buildRequest(
