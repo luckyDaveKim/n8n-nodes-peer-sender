@@ -5,8 +5,12 @@ import {
 	INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
-import {peerFields} from './PeerFieldDescription';
 import axios from 'axios';
+
+import {peerFields} from './PeerFieldDescription';
+import {ISenderStrategy, SendMode} from './types';
+import {PluginSender} from './modes/PluginSender';
+import {TemplateSender} from './modes/TemplateSender';
 
 export class PeerSender implements INodeType {
 	description: INodeTypeDescription = {
@@ -35,32 +39,41 @@ export class PeerSender implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 
-		// credential info
+		let sender: ISenderStrategy;
+		const sendMode: SendMode = this.getNodeParameter('sendMode', 0, 'plugin') as SendMode;
+		switch (sendMode) {
+			case 'plugin':
+				sender = new PluginSender();
+				break;
+			case 'template':
+				sender = new TemplateSender();
+				break;
+			default:
+				throw new NodeOperationError(this.getNode(), `Invalid send mode; ${sendMode} is not defined!`);
+		}
+		const axiosRequest = await sender.buildRequest(this, items);
+
+		// set base url
 		const credential = await this.getCredentials('peerSenderApi');
-		const domain: string = credential.peerApiDomain as string;
+		axiosRequest.baseURL = credential.peerApiDomain as string;
 
-		// parameter info
-		const plugins: string = this.getNodeParameter('plugins', 0, '') as string;
-		const textFormat: string = this.getNodeParameter('textFormat', 0, '') as string;
-		const group: string = this.getNodeParameter('group', 0, '') as string;
+		// set body
 		const sendBody: boolean = this.getNodeParameter('sendBody', 0, false) as boolean;
-		const body: string = this.getNodeParameter('body', 0, '') as string;
+		if (sendBody) {
+			const body: string = this.getNodeParameter('body', 0, '') as string;
+			axiosRequest.data = JSON.parse(body);
+		}
 
-		const url = `${domain}/callback?plugins=${plugins}&text.format=${textFormat}&group=${group}`;
+		// request axios
 		try {
-			let response;
-			if (sendBody) {
-				response = await axios.post(url, JSON.parse(body));
-			} else {
-				response = await axios.post(url);
-			}
-
+			const response = await axios.request(axiosRequest);
 			items.push(response.data);
 		} catch (error) {
 			throw new NodeOperationError(this.getNode(), error, {
 				messageMapping: {
-					url,
-					error
+					baseUrl: axiosRequest.baseURL || '',
+					url: axiosRequest.url || '',
+					method: axiosRequest.method || '',
 				},
 			});
 		}
